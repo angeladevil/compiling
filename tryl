@@ -1,0 +1,33 @@
+%{
+#include "y.tab.h"
+
+%}
+
+%%
+
+"end"  {return end;}
+"while" {return WHILE;}
+"do" {return DO;}
+"else" {return ELSE;}
+"then"  {return THEN;}
+
+
+
+
+"if"    {return IF;}
+"begin"  {return begin;}
+"int"  {return INT;}
+"=="  {return EQUA;}
+[0-9]+  {yylval.num=atoi(yytext);return INTEGER;}
+[A-Za-z_][a-zA-Z0-9_]*  {return IDENTIFIER;}
+[;]  {return DELIMITER;}
+[\+\-\*\/\<\>\=] {return (int)*yytext;} 
+[ \n\t]  
+
+.    {printf("error words\n");}
+%%
+
+int yywrap(void)
+{
+return 1;
+}
