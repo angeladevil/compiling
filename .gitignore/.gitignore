@@ -1,0 +1,141 @@
+%{
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+void yyerror (char *s);
+typedef enum { TYPE_CONTENT, TYPE_OP } NodeEnum;
+
+  typedef struct {
+  int name; 
+  int num; 
+  struct NodeTag *node[1]; 
+  }OpNode;
+  
+  typedef struct NodeTag {
+  NodeEnum type; 
+  union {
+  int content; 
+ 
+  OpNode op; 
+  };
+  }Node;
+int exeNode(Node*);
+Node *opr(int name, int num, ...);
+Node *set_content(int value);
+
+%}
+%union
+{
+int num;
+char idt;
+Node* nptr;
+}
+%start programme
+%token<idt> IDENTIFIER
+%token<num> INTEGER
+%token DELIMITER
+%token begin
+%token EQUA
+%token end
+%token IF
+%token DO
+%token ELSE
+%token THEN
+%token INT
+%token WHILE
+%token OPERATOR
+
+%token '+' '-' '*' '/'
+%type<nptr> EXP sentence sentences programme
+
+%left '+' '-'
+%left '*' '/'
+%%
+programme: begin sentences end  {exeNode($2);}
+	  | INT IDENTIFIER DELIMITER {printf("declaration\n");}
+	  | IF BOOL THEN sentences ELSE sentences {printf("chosen\n");}
+	  | WHILE BOOL sentences {printf("loop\n");}
+sentences: sentence sentences {$$=$1;}
+          |sentence {$$=$1;}
+sentence:  IDENTIFIER '=' EXP DELIMITER {$$=$3;}
+BOOL: IDENTIFIER EQUA INTEGER          
+EXP:  EXP '+' EXP { $$=opr('+', 2, $1, $3);}
+
+     |EXP '-' EXP {$$=opr('-', 2, $1, $3);}
+
+     |EXP '*' EXP {$$=opr('*', 2, $1, $3);}
+
+     |EXP '/' EXP {$$=opr('/', 2, $1, $3);}
+
+     |INTEGER {$$= set_content($1);}
+
+
+%%
+#define SIZE_OF_NODE ((char *)&p->content - (char *)p)
+    
+    Node *set_content(int value) {
+    
+     Node *p;
+     
+     size_t sizeNode;
+     sizeNode = SIZE_OF_NODE + sizeof(int);
+     
+     if ((p = malloc(sizeNode)) == NULL)
+      yyerror("");
+     
+     p->type = TYPE_CONTENT;
+     p->content = value;
+     
+     return p;
+     
+    }
+    
+   
+    
+    Node *opr(int name, int num, ...) {
+    
+     va_list valist;
+     Node *p;
+     size_t sizeNode;
+   int i;
+     sizeNode = SIZE_OF_NODE + sizeof(OpNode) + (num - 1) * sizeof(Node*);
+   
+    if ((p = malloc(sizeNode)) == NULL)
+     yyerror("");
+    
+    p->type = TYPE_OP;
+    p->op.name = name;
+    p->op.num = num;
+    
+    va_start(valist, num);
+   
+    for (i = 0; i < num; i++)
+    p->op.node[i] = va_arg(valist, Node*);
+    
+   va_end(valist);
+   return p;
+ }
+int main ()
+{
+return (yyparse());
+}
+
+void yyerror(char *s)
+{
+printf("fail\n");
+}
+ int exeNode(Node *p) {
+   if (!p) return 0;
+   switch(p->type) {
+    case TYPE_CONTENT: return p->content;
+    
+    case TYPE_OP:
+     switch(p->op.name) {
+     
+ case '+':    return exeNode(p->op.node[0]) + exeNode(p->op.node[1]);
+ case '-':    return exeNode(p->op.node[0]) - exeNode(p->op.node[1]);
+ case '*':    return exeNode(p->op.node[0]) * exeNode(p->op.node[1]);
+ case '/':    return exeNode(p->op.node[0]) / exeNode(p->op.node[1]);
+}
+}
+}
